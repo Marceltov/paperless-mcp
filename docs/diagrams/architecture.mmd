@@ -1,0 +1,21 @@
+flowchart LR
+  app["App client<br>OAuth login"]
+  headless["Headless client<br>API token"]
+  lan["Client on a trusted LAN<br>API token"]
+  proxy["Reverse proxy<br>TLS"]
+  subgraph host["Docker host"]
+    mcp["paperless-mcp<br>:8081 /mcp"]
+    oauth[("mcp-oauth<br>encrypted")]
+    paperless["Paperless-ngx<br>:8000 /api"]
+    data[("documents")]
+  end
+  app -- HTTPS --> proxy
+  headless -- HTTPS --> proxy
+  lan -- HTTP --> mcp
+  proxy --> mcp
+  mcp -- OAuth logins --> oauth
+  mcp -- "OpenAPI spec, at startup" --> paperless
+  mcp -- REST API --> paperless
+  paperless --> data
+  classDef accent fill:#98D486,stroke:#2f7a27,color:#10200c,stroke-width:1.5px
+  class mcp accent

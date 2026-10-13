@@ -1,0 +1,17 @@
+ACME Hardware Ltd.
+12 Foundry Lane, Sheffield S1 4GT
+
+INVOICE No. AC-2026-0522
+Date: 9 May 2026
+
+Bill to: Jordan Example, 4 Orchard Close, Leeds LS6 2AB
+
+Qty  Description                       Unit price    Amount
+  1  Workbench, beech, 150 cm             312.00    312.00
+  2  Bench vice, 100 mm                    41.00     82.00
+
+Subtotal                                            394.00
+VAT 20 %                                             78.80
+Total due                                       GBP 472.80
+
+Payment terms: 30 days net. Please quote the invoice number with your payment.

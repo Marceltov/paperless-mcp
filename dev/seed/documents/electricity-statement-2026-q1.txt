@@ -1,0 +1,18 @@
+Northwind Energy
+Customer Service, PO Box 77, Manchester M1 9ZZ
+
+ELECTRICITY STATEMENT
+Contract number: NW-88-204417
+Statement date: 3 April 2026
+Period: 1 February 2026 to 31 March 2026
+
+Meter reading at start:    41 208 kWh
+Meter reading at end:      41 771 kWh
+Consumption:                  563 kWh
+
+Energy, 563 kWh at 27.4 p                  GBP 154.26
+Standing charge, 59 days at 53.1 p          GBP 31.33
+VAT 5 %                                      GBP 9.28
+Total for this period                      GBP 194.87
+
+Paid by direct debit: GBP 190.00. Balance carried forward: GBP 4.87.

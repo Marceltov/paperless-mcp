@@ -1,0 +1,90 @@
+# Development stack: a throwaway Paperless-ngx seeded with sample documents,
+# plus the MCP server built from local source.
+#
+#   docker compose up -d --build     # rebuild after any change under app/
+#   docker compose down -v           # throw the instance away (resets the seed)
+#
+# Paperless: http://localhost:9190  (admin / paperless-mcp)
+# MCP:       http://localhost:9191/mcp
+#
+# Everything here is a dev-only fixture -- never reuse these credentials.
+name: paperless-mcp-dev
+
+services:
+  broker:
+    image: docker.io/library/redis:8
+    restart: unless-stopped
+
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    restart: unless-stopped
+    depends_on:
+      - broker
+    ports:
+      - "9190:8000"
+    environment:
+      PAPERLESS_REDIS: redis://broker:6379
+      PAPERLESS_URL: http://localhost:9190
+      PAPERLESS_SECRET_KEY: dev-only-secret-key
+      # Created on first start; the seed and the tests log in with it.
+      PAPERLESS_ADMIN_USER: admin
+      PAPERLESS_ADMIN_PASSWORD: paperless-mcp
+      # Paperless allows five logins a minute per address; the test suite logs
+      # in more often than that, and all of it arrives from one address.
+      PAPERLESS_TOKEN_THROTTLE_RATE: 1000/min
+      PAPERLESS_TIME_ZONE: UTC
+      PAPERLESS_OCR_LANGUAGE: eng
+      # Small footprint: this instance only ever holds a handful of text files.
+      PAPERLESS_TASK_WORKERS: 1
+      PAPERLESS_WEBSERVER_WORKERS: 1
+    volumes:
+      - paperless-data:/usr/src/paperless/data
+      - paperless-media:/usr/src/paperless/media
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:8000/api/schema/"]
+      interval: 5s
+      timeout: 5s
+      start_period: 120s
+      retries: 30
+
+  # One-shot: fills the empty instance through the REST API (correspondents,
+  # document types, tags, a custom field and the files in dev/seed/documents/),
+  # then exits. Does nothing when the instance already holds documents.
+  seed:
+    build: .
+    restart: "no"
+    depends_on:
+      paperless:
+        condition: service_healthy
+    environment:
+      PAPERLESS_URL: http://paperless:8000
+    volumes:
+      - ./dev/seed:/seed:ro
+    command: ["python", "/seed/seed.py"]
+
+  paperless-mcp:
+    # Build the image from the local source for development. Swap for
+    # `image: ghcr.io/marceltov/paperless-mcp:latest` to use the published one.
+    build: .
+    restart: unless-stopped
+    # Starting after the seed means a healthy MCP is a seeded Paperless, which
+    # is all run-tests.sh has to wait for.
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    environment:
+      # Service name of Paperless on this compose network.
+      PAPERLESS_URL: http://paperless:8000
+      # OAuth: the public URL clients reach this server at, and the key that
+      # encrypts the OAuth store. Dev-only values -- never reuse them.
+      MCP_BASE_URL: http://localhost:9191
+      MCP_OAUTH_SECRET: dev-only-oauth-secret
+    volumes:
+      - mcp-oauth:/data
+    ports:
+      - "9191:8081"
+
+volumes:
+  paperless-data:
+  paperless-media:
+  mcp-oauth:

@@ -1,0 +1,161 @@
+name: Publish image
+
+# Build the Docker image and push it to GitHub Container Registry (GHCR).
+# Auth uses the built-in GITHUB_TOKEN — no secrets to configure.
+
+on:
+  # Every branch push builds a testable image (:<branch> + :sha-…); every v* tag
+  # builds the versioned release (:1.2.3/:1.2/:1/:latest). Both filters are needed:
+  # listing only tags would stop branch pushes from triggering at all.
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # Derived from the repository, not hardcoded: a GitHub account/org rename
+      # (as happened marcelbruckner -> marceltov) silently breaks a hardcoded
+      # namespace with a permission_denied push failure, since the old owner
+      # no longer has an app installation for this repo.
+      - name: Set lowercase image name
+        run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      - name: Compute tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # Each tag type fires only on its matching event, so one list serves both:
+          #   branch push -> :<branch>              (a testable image; latest is NOT moved)
+          #   v* tag push -> :1.2.3/:1.2/:1 + :latest (default latest=auto)
+          # No :sha tags: :<branch> covers testing, and GHCR keeps an immutable
+          # @sha256 digest per image for exact pinning/rollback when needed.
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Tag a commit (e.g. v0.1.0) to publish a GitHub release. Real release notes come from
+  # the annotated tag message (write them with `git tag -a`); the install instructions are
+  # appended below them so every release always carries them. Re-runs update the release
+  # in place, so the tag can be created from the UI or the CLI first — this job reconciles.
+  release:
+    needs: publish
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Assemble release notes
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Annotated tag message (empty for a lightweight tag), then the install section.
+          git for-each-ref "refs/tags/$TAG" --format='%(contents)' > notes.md
+          [ -s notes.md ] && printf '\n---\n\n' >> notes.md
+          cat >> notes.md <<'EOF'
+          ## Install
+
+          All you need is a running Paperless-ngx and Docker — no checkout, no build.
+
+          **1. Add paperless-mcp to your Paperless-ngx `docker-compose.yaml`** — one service, pulling the prebuilt image:
+
+          ```yaml
+          services:
+            webserver:
+              # ... your existing Paperless-ngx service ...
+
+            paperless-mcp:
+              image: ghcr.io/marceltov/paperless-mcp:__VERSION__
+              container_name: paperless-mcp
+              restart: unless-stopped
+              environment:
+                # Service name and port of Paperless-ngx on the same compose network.
+                PAPERLESS_URL: http://webserver:8000
+                # Optional — enables OAuth login for remote/app clients:
+                # MCP_BASE_URL: https://paperless-mcp.example
+                # MCP_OAUTH_SECRET: <long random string>
+              # volumes:
+              #   - mcp-oauth:/data   # keeps OAuth logins across restarts
+              ports:
+                - "8081:8081"
+          ```
+
+          Then start it:
+
+          ```bash
+          docker compose up -d paperless-mcp
+          ```
+
+          On startup it downloads the OpenAPI spec from your Paperless-ngx (`/api/schema/`) and turns it into tools, so they match the version you run.
+
+          **2. Connect your MCP client**, pointing at wherever paperless-mcp is reachable:
+
+          ```bash
+          # With an API token (Paperless-ngx: My Profile → API Auth Token)
+          claude mcp add paperless --scope user --transport http \
+            https://paperless-mcp.example/mcp \
+            --header "Authorization: YOUR_PAPERLESS_API_TOKEN"
+
+          # With OAuth enabled: URL only, log in once in the browser
+          claude mcp add paperless --scope user --transport http \
+            https://paperless-mcp.example/mcp
+          ```
+
+          Full guide: [documentation](https://paperless-mcp.marceltov.de/getting-started/)
+          EOF
+          # The git tag keeps its `v` (v0.1.0); the image tag drops it (0.1.0).
+          sed -i "s|__VERSION__|${TAG#v}|g; s|__TAG__|$TAG|g" notes.md
+
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TAG" --notes-file notes.md
+          else
+            gh release create "$TAG" --title "$TAG" --notes-file notes.md --verify-tag
+          fi

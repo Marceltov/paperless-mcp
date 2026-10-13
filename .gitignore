@@ -1,0 +1,15 @@
+# Python / uv
+**/.venv/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local config with secrets. .env.live holds the API token of a REAL Paperless
+# (see docker-compose.live.yaml) and must never be committed.
+.env
+.env.*
+!.env.live.example
+*.token
+
+# MkDocs build output
+site/

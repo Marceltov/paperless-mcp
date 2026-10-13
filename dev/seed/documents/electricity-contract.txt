@@ -1,0 +1,21 @@
+Northwind Energy
+Customer Service, PO Box 77, Manchester M1 9ZZ
+
+ELECTRICITY SUPPLY CONTRACT
+Contract number: NW-88-204417
+Date: 2 January 2026
+
+Dear Jordan Example,
+
+Thank you for choosing Northwind Energy. This letter confirms your contract for
+the supply of electricity to 4 Orchard Close, Leeds LS6 2AB.
+
+Tariff:            Green Fixed 24
+Unit rate:         27.4 p per kWh
+Standing charge:   53.1 p per day
+Contract start:    1 February 2026
+Fixed until:       31 January 2028
+Notice period:     One month before the end of the fixed term
+
+Your first meter reading is due on the start date. You can submit readings in
+the customer portal or by phone.

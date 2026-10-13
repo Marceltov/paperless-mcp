@@ -1,0 +1,41 @@
+name: Publish docs
+
+# Build the documentation site from docs/ with Material for MkDocs and publish it
+# to GitHub Pages. --strict fails the build on broken internal links.
+
+on:
+  push:
+    branches: [main]
+    paths: ["docs/**", "examples/**", mkdocs.yml, .github/workflows/pages.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      # mkdocs<2: Material 9 isn't compatible with MkDocs 2.0.
+      - run: uvx --with mkdocs-material==9.7.7 --with 'mkdocs<2' mkdocs build --strict
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

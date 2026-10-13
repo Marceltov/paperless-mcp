@@ -1,0 +1,29 @@
+# Development against a REAL Paperless-ngx with live data: only the MCP server,
+# built from local source, pointed at an instance you already run.
+#
+#   cp .env.live.example .env.live     # then set PAPERLESS_URL
+#   docker compose --env-file .env.live -f docker-compose.live.yaml up -d --build
+#
+# MCP: http://localhost:9192/mcp
+#
+# Tools called through this stack read and CHANGE real documents. The test
+# suite never targets it (see app/tests/test_live_target.py); use the seeded
+# stack in docker-compose.yaml for anything that writes.
+name: paperless-mcp-live
+
+services:
+  paperless-mcp:
+    build: .
+    restart: unless-stopped
+    environment:
+      PAPERLESS_URL: ${PAPERLESS_URL:?set PAPERLESS_URL in .env.live}
+      MCP_BASE_URL: http://localhost:9192
+      MCP_OAUTH_SECRET: ${MCP_OAUTH_SECRET:-dev-only-oauth-secret}
+      MCP_TOOLSETS: ${MCP_TOOLSETS:-}
+    volumes:
+      - mcp-oauth:/data
+    ports:
+      - "9192:8081"
+
+volumes:
+  mcp-oauth:

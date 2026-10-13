@@ -1,0 +1,18 @@
+ACME Hardware Ltd.
+12 Foundry Lane, Sheffield S1 4GT
+
+INVOICE No. AC-2026-0317
+Date: 14 March 2026
+
+Bill to: Jordan Example, 4 Orchard Close, Leeds LS6 2AB
+
+Qty  Description                       Unit price    Amount
+  2  Cordless drill, 18 V                  89.00    178.00
+  1  Masonry bit set, 8 pieces             24.50     24.50
+  5  Wall plugs, box of 100                 3.20     16.00
+
+Subtotal                                            218.50
+VAT 20 %                                             43.70
+Total due                                       GBP 262.20
+
+Payment terms: 30 days net. Please quote the invoice number with your payment.

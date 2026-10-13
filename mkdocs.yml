@@ -1,0 +1,95 @@
+site_name: paperless-mcp
+site_description: An MCP server that turns the Paperless-ngx REST API into tools for Claude and other MCP clients.
+site_url: https://paperless-mcp.marceltov.de/
+repo_url: https://github.com/Marceltov/paperless-mcp
+repo_name: Marceltov/paperless-mcp
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2026 Marcel Bruckner. Licensed under <a href="https://github.com/Marceltov/paperless-mcp/blob/main/LICENSE">AGPL-3.0-or-later</a>
+
+# Diagram sources are embedded into pages.
+exclude_docs: |
+  diagrams/
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Quick start: getting-started.md
+  - Connect a client:
+      - Overview: connecting.md
+      - Claude Code: claude-code.md
+      - Claude.ai: claude-ai.md
+  - Deployment:
+      - Compose examples: compose-examples.md
+      - Configuration: configuration.md
+      - Tools: tools.md
+      - Reverse proxy and TLS: reverse-proxy.md
+      - Security: security.md
+  - Internals:
+      - How it works: how-it-works.md
+      - Design decisions:
+          - OAuth login via the Paperless login: adr/0001-oauth-login-via-the-paperless-login.md
+          - OpenAPI spec downloaded at startup: adr/0002-openapi-spec-downloaded-at-startup.md
+          - Curated default toolsets: adr/0003-curated-default-toolsets.md
+  - Project:
+      - Contributing: contributing.md
+
+theme:
+  name: material
+  icon:
+    logo: material/file-document-multiple-outline
+  font:
+    text: Atkinson Hyperlegible Next
+    code: Atkinson Hyperlegible Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.instant
+    - navigation.footer
+    - navigation.top
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+    - content.action.edit
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.min.js
+  - javascripts/mermaid.js
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
