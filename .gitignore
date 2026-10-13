@@ -9,6 +9,7 @@
 .env
 .env.*
 !.env.live.example
+!.env.example
 *.token
 
 # MkDocs build output
