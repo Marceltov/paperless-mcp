@@ -54,6 +54,7 @@ from mcp.server.auth.provider import (
 )
 from mcp.server.auth.routes import validate_issuer_url
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
+from mcp.types import ToolAnnotations
 from pydantic import AnyHttpUrl
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, PlainTextResponse, RedirectResponse
@@ -744,12 +745,265 @@ def register_health(mcp: FastMCP) -> None:
         return PlainTextResponse("ok")
 
 
+# Server-level guidance, sent to every client at initialize.
+INSTRUCTIONS = """\
+Tools for one Paperless-ngx document archive, acting as the logged-in user.
+
+Working with it:
+- Correspondents, document types, tags, storage paths and custom fields are \
+referenced by numeric ID. Look the ID up first (tags_list, correspondents_list, \
+document_types_list with `name__icontains`) and filter with it.
+- An archive holds hundreds to thousands of documents, and every document \
+carries its full OCR text in `content`. Never page through documents_list to \
+find something: filter or search on the server, pass `fields` to leave out \
+`content`, and keep `page_size` small. The `count` in a list result answers \
+"how many" without reading the pages.
+- Read the full text of a document with documents_retrieve, one document at a \
+time, once you know which one you need.
+- Changes apply at once and to the real archive. Tools marked destructive \
+delete or overwrite: say what will be affected and get the user's \
+confirmation first, above all for bulk_edit, bulk_edit_objects, \
+documents_delete and trash_create.
+"""
+
+# POST operations that only read (the method alone would mark them as writes).
+READ_ONLY_POSTS = frozenset({
+    "documents_selection_data_create", "storage_paths_test",
+})
+# POST operations that delete, or overwrite a document's file.
+DESTRUCTIVE_POSTS = frozenset({
+    "bulk_edit", "bulk_edit_objects", "documents_delete", "trash_create",
+    "documents_merge", "documents_edit_pdf", "documents_rotate",
+    "documents_remove_password", "processed_mail_bulk_delete",
+    "users_deactivate_totp_create",
+})
+# Operations that reach beyond Paperless: they send mail or contact a mailbox.
+OPEN_WORLD = frozenset({
+    "documents_email_document", "email_documents", "mail_account_test",
+    "mail_account_process",
+})
+
+READ_ONLY = ToolAnnotations(
+    readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False
+)
+
+LIST_NOTE = (
+    "Paginated: returns `count` (total matches), `next`, `previous` and "
+    "`results`. `page_size` defaults to 25; fetch further pages with `page`."
+)
+DELETE_NOTE = "Deletes permanently; this cannot be undone."
+
+# Text that says nothing about the endpoint: docstrings of shared Paperless
+# mixins that the spec repeats on dozens of unrelated operations, and the
+# "Executes GET /api/..." FastMCP fills in where the spec has none. Replaced
+# by a sentence built from the tool's name (see summary_from_name).
+BOILERPLATE = (
+    "Prefetch Django-Guardian permissions", "Mixin to add document count",
+    "Pass a user object to serializer", "Executes ",
+)
+# The plain collection and item paths, the only ones the sentences fit.
+CRUD_PATH = re.compile(r"^/api/[a-z_]+/(\{id\}/)?$")
+VERBS = {
+    "list": "List {noun}.",
+    "retrieve": "Get one of the {noun} by ID.",
+    "create": "Create a new entry in {noun}.",
+    "partial_update": "Change fields of one of the {noun}; fields left out keep their value.",
+    "update": "Replace one of the {noun}; every writable field must be sent.",
+    "destroy": "Delete one of the {noun}.",
+}
+
+# Hand-written descriptions for the tools a model reaches for most, and for
+# the ones where a wrong call is expensive. They replace the spec's text.
+TOOL_GUIDES = {
+    "documents_list": """\
+List, filter or search documents. Returns `count` (total matches), `next`, \
+`previous` and `results`.
+
+Keep the result small. Each document includes `content`, its full OCR text, \
+often several thousand characters. Unless you need the text, pass `fields` \
+(for example id,title,created,correspondent,document_type,tags), and keep \
+`page_size` low (default 25). To count, ask for `page_size=1` and read `count`.
+
+Narrow on the server rather than paging:
+- `query`: full-text search over content, title and metadata; results are \
+ranked and each gets a `__search_hit__` with a highlighted snippet.
+- `title__icontains`, `content__icontains`, `original_filename__icontains`.
+- `correspondent__id`, `document_type__id`, `storage_path__id` (or \
+`..__id__in` for several, `..__isnull=true` for none assigned).
+- `tags__id__all` (has every tag), `tags__id__in` (has any), \
+`tags__id__none`, `is_tagged`, `is_in_inbox`.
+- `created__date__gte` / `created__date__lte` (YYYY-MM-DD), `created__year`, \
+`created__month`; the same for `added` and `modified`.
+- `custom_field_query`, `has_custom_fields`, `archive_serial_number`.
+Filters take IDs, not names: look them up with correspondents_list, \
+document_types_list, tags_list or storage_paths_list first.
+
+`ordering` sorts by a field, `-` for descending, e.g. `-created`.""",
+    "documents_retrieve": """\
+Get one document by ID: its metadata and, in `content`, the full extracted \
+text. This is the way to read a document; the download and preview tools \
+return the binary file instead. Correspondent, document type, storage path \
+and tags come back as IDs. Pass `fields` to fetch only some fields, e.g. \
+`content` alone or everything but it.""",
+    "search_retrieve": """\
+Global search across object types: returns matching documents, correspondents, \
+document types, storage paths, tags, saved views, custom fields and more, at \
+most three of each, for one `query` string. Use it to find out what a name \
+refers to. The documents come with their full `content` text and there is no \
+`fields` option. To search documents with filters, paging or `fields`, use documents_list with \
+`query` instead. `db_only=true` matches titles and names only, without the \
+full-text index.""",
+    "search_autocomplete_list": """\
+Suggest words from the full-text index that start with `term`, most relevant \
+first (`limit`, default 10). Useful to find how a word is spelled in the \
+archive before searching for it.""",
+    "documents_partial_update": """\
+Change some fields of one document and leave the rest as they are: title, \
+created, correspondent, document_type, storage_path, tags, \
+archive_serial_number, custom_fields, owner. `tags` and `custom_fields` \
+replace the whole list, so send the full new list (read the document first), \
+or use bulk_edit with `add_tag` / `remove_tag` / `modify_tags` to change tags \
+without resending them. To change many documents at once use bulk_edit.""",
+    "documents_destroy": """\
+Delete one document. It moves to the trash, where trash_create can restore it \
+until Paperless empties the trash (30 days by default); after that the file \
+and its metadata are gone.""",
+    "documents_delete": """\
+Move documents to the trash: those listed in `documents`, or with `all=true` \
+every document matching `filters` (minus `excluded_documents`). `all=true` \
+without filters trashes the whole archive. Trashed documents can be restored \
+with trash_create until the trash is emptied.""",
+    "bulk_edit": """\
+Apply one `method` to many documents: the IDs in `documents`, or with \
+`all=true` every document matching `filters` (minus `excluded_documents`). \
+Check the selection first with documents_list using the same filters.
+
+Methods and their `parameters`:
+- `set_correspondent` {correspondent}, `set_document_type` {document_type}, \
+`set_storage_path` {storage_path}: an ID, or null to clear.
+- `add_tag` {tag}, `remove_tag` {tag}, `modify_tags` {add_tags, remove_tags}.
+- `modify_custom_fields` {add_custom_fields, remove_custom_fields}.
+- `set_permissions` {owner, set_permissions, merge}.
+- `reprocess`: run OCR again.
+- `delete`: move to the trash.
+- `rotate` {degrees}, `merge` {metadata_document_id, delete_originals}, \
+`split` {pages, delete_originals}, `delete_pages` {pages}, `edit_pdf`, \
+`remove_password` {password}: these rewrite or replace the stored files.
+
+The file-changing methods and `delete` can't be undone from here. They run \
+as background tasks, so the call returns before the work is done.""",
+    "bulk_edit_objects": """\
+Change or delete many tags, correspondents, document types or storage paths \
+at once (`object_type`): the IDs in `objects`, or all of them with \
+`all=true`. `operation` is `set_permissions` (with `owner`, `permissions`, \
+`merge`) or `delete`. `delete` is permanent: the objects are removed from \
+every document that used them, and there is no trash for them.""",
+    "trash_list": """\
+List the documents in the trash (deleted, not yet purged). Paginated like \
+documents_list, and each entry includes the full `content` text, so keep \
+`page_size` small.""",
+    "trash_create": """\
+Act on trashed documents. `action=restore` puts the documents in `documents` \
+back into the archive. `action=empty` deletes them for good, file and \
+metadata; with `documents` left out it empties the ENTIRE trash. Emptying \
+cannot be undone.""",
+    "tags_list": """\
+List tags, each with its ID, name, `document_count`, `parent` and \
+`children`. Find one by name with `name__icontains` or `name__iexact` rather \
+than listing all; the ID is what the document filters and updates take.""",
+    "correspondents_list": """\
+List correspondents (the senders or recipients of documents), each with its \
+ID, name, `document_count` and `last_correspondence`. Find one by name with \
+`name__icontains` or `name__iexact`; the ID is what the document filters and \
+updates take.""",
+    "document_types_list": """\
+List document types (invoice, contract, ...), each with its ID, name and \
+`document_count`. Find one by name with `name__icontains` or `name__iexact`; \
+the ID is what the document filters and updates take.""",
+    "storage_paths_list": """\
+List storage paths (the rules for where files are filed), each with its ID, \
+name, `path` template and `document_count`. Filter by `name__icontains`.""",
+    "custom_fields_list": """\
+List the custom field definitions: ID, name, `data_type` and, for select \
+fields, the options. A document's `custom_fields` refer to these by ID.""",
+    "statistics_retrieve": """\
+Totals for the archive in one small result: number of documents, documents in \
+the inbox, total characters, file types, and counts of tags, correspondents, \
+document types and storage paths. Use it for "how many" questions instead of \
+listing.""",
+    "tasks_list": """\
+List background tasks (file consumption, OCR, bulk edits). The list grows \
+without bound, so filter: `task_id` for the UUID an upload returned, \
+`status` (pending, started, success, failure), `is_complete`, and a small \
+`page_size`. A finished consumption task lists the new document in \
+`related_document_ids`.""",
+    "documents_selection_data_create": """\
+For a set of documents (`documents`, or `all=true` with `filters`), count how \
+many carry each tag, correspondent, document type and storage path. Reads \
+only; a cheap way to summarise a selection without fetching the documents.""",
+}
+
+
+def tool_annotations(method: str, name: str) -> ToolAnnotations:
+    """Behaviour hints for a generated tool, from its HTTP method.
+
+    GET reads. DELETE and PUT are destructive (PUT replaces the whole object)
+    and idempotent. PATCH is an idempotent edit of single fields. POST creates,
+    unless it is listed above as a read or as a destructive action.
+    """
+    method = method.upper()
+    read_only = method == "GET" or name in READ_ONLY_POSTS
+    return ToolAnnotations(
+        readOnlyHint=read_only,
+        destructiveHint=not read_only
+        and (method in ("DELETE", "PUT") or name in DESTRUCTIVE_POSTS),
+        idempotentHint=read_only or method in ("DELETE", "PUT", "PATCH"),
+        openWorldHint=name in OPEN_WORLD,
+    )
+
+
+def summary_from_name(path: str, name: str) -> str:
+    """A plain sentence for a CRUD tool, e.g. `saved_views_list` -> "List saved
+    views." Empty for action endpoints and names without a known verb.
+    """
+    if not CRUD_PATH.match(path):
+        return ""
+    for verb, sentence in VERBS.items():
+        if name.endswith(f"_{verb}"):
+            return sentence.format(noun=name[: -len(verb) - 1].replace("_", " "))
+    return ""
+
+
+def tool_description(route, name: str, spec_text: str) -> str:
+    """The description of a generated tool: the endpoint, then a hand-written
+    guide where there is one, else the spec's text plus a note on what the
+    method implies (paging, permanent deletion).
+    """
+    method = route.method.upper()
+    parts = [f"{method} {route.path}"]
+    if name in TOOL_GUIDES:
+        parts.append(TOOL_GUIDES[name].strip())
+    else:
+        if spec_text.startswith(BOILERPLATE):
+            spec_text = summary_from_name(route.path, name)
+        if spec_text:
+            parts.append(spec_text)
+        if method == "GET" and any(p.name == "page_size" for p in route.parameters):
+            parts.append(LIST_NOTE)
+        elif method == "DELETE":
+            parts.append(DELETE_NOTE)
+    return "\n\n".join(parts)
+
+
 def describe_tool(route, component) -> None:
     """Fix up the metadata of a generated tool (mcp_component_fn, see build_server).
 
-    * Lead the description with the method and path. Many Paperless operations
-      carry a shared mixin's docstring as their description ("Prefetch
-      Django-Guardian permissions ..."), which says nothing about the endpoint.
+    * Lead the description with the method and path, and follow it with a
+      hand-written guide or a note on the method (see tool_description). Many
+      Paperless operations carry a shared mixin's docstring as their
+      description ("Prefetch Django-Guardian permissions ..."), which says
+      nothing about the endpoint.
+    * Add the read-only / destructive / idempotent hints (tool_annotations).
     * Clear the output schema. With validate_output=False FastMCP reduces it to
       "any object", which is wrong for the many endpoints that answer with a
       bare array, a string or a number (notes, history, next_asn, bulk_edit) or
@@ -759,9 +1013,10 @@ def describe_tool(route, component) -> None:
     """
     if not isinstance(component, OpenAPITool):
         return
-    component.description = (
-        f"{route.method.upper()} {route.path}\n\n{component.description or ''}".strip()
+    component.description = tool_description(
+        route, component.name, (component.description or "").strip()
     )
+    component.annotations = tool_annotations(route.method, component.name)
     component.output_schema = None
 
 
@@ -794,7 +1049,7 @@ def register_file_tools(mcp: FastMCP, client: httpx.AsyncClient) -> None:
         # A text file comes back as readable text, anything else base64-encoded.
         return File(data=response.content, format=subtype, name=f"document-{document_id}")
 
-    @mcp.tool(name="documents_download_retrieve")
+    @mcp.tool(name="documents_download_retrieve", annotations=READ_ONLY)
     async def download(id: int, original: bool = False):
         """Download a document's file (GET /api/documents/{id}/download/).
 
@@ -807,13 +1062,13 @@ def register_file_tools(mcp: FastMCP, client: httpx.AsyncClient) -> None:
             {"original": "true"} if original else None,
         )
 
-    @mcp.tool(name="documents_preview_retrieve")
+    @mcp.tool(name="documents_preview_retrieve", annotations=READ_ONLY)
     async def preview(id: int):
         """Fetch a document's inline preview, usually the archived PDF
         (GET /api/documents/{id}/preview/)."""
         return await fetch(FILE_PATHS["documents_preview_retrieve"], id)
 
-    @mcp.tool(name="documents_thumb_retrieve")
+    @mcp.tool(name="documents_thumb_retrieve", annotations=READ_ONLY)
     async def thumb(id: int):
         """Fetch the thumbnail image of a document's first page
         (GET /api/documents/{id}/thumb/)."""
@@ -829,7 +1084,13 @@ def register_upload_tool(mcp: FastMCP, client: httpx.AsyncClient) -> None:
     itself. The `client` carries the same per-request Paperless auth.
     """
 
-    @mcp.tool(name=UPLOAD_TOOL)
+    @mcp.tool(
+        name=UPLOAD_TOOL,
+        annotations=ToolAnnotations(
+            readOnlyHint=False, destructiveHint=False, idempotentHint=False,
+            openWorldHint=False,
+        ),
+    )
     async def upload(
         filename: str,
         content: str | None = None,
@@ -988,6 +1249,7 @@ def build_server(
         openapi_spec=select_operations(spec, resolve_toolsets()),
         client=client,
         name="Paperless-ngx MCP",
+        instructions=INSTRUCTIONS,
         auth=auth,
         # The live API doesn't always match its own spec (nullable fields typed
         # as plain strings, paginated wrappers), so response validation would
