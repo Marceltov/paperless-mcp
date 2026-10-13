@@ -125,6 +125,88 @@ def test_generated_tools_name_their_endpoint_and_carry_no_output_schema():
         assert tools[name].output_schema is None
 
 
+def _tools():
+    return {t.name: t for t in asyncio.run(build(lambda r: httpx.Response(404)).list_tools())}
+
+
+def _hints(tool):
+    a = tool.annotations
+    return (a.readOnlyHint, a.destructiveHint, a.idempotentHint)
+
+
+def test_every_tool_carries_behaviour_hints():
+    for name, tool in _tools().items():
+        hints = tool.annotations
+        assert hints is not None, name
+        assert not (hints.readOnlyHint and hints.destructiveHint), name
+        if name.endswith(("_list", "_retrieve")):
+            assert hints.readOnlyHint, name
+        if name.endswith("_destroy"):
+            assert hints.destructiveHint, name
+
+
+@pytest.mark.parametrize(
+    "name, hints",
+    [
+        ("documents_list", (True, False, True)),
+        ("documents_download_retrieve", (True, False, True)),
+        ("documents_selection_data_create", (True, False, True)),  # a POST that reads
+        ("tags_create", (False, False, False)),
+        ("documents_post_document_create", (False, False, False)),
+        ("documents_partial_update", (False, False, True)),
+        ("documents_destroy", (False, True, True)),
+        ("bulk_edit", (False, True, False)),  # POSTs that delete
+        ("bulk_edit_objects", (False, True, False)),
+        ("documents_delete", (False, True, False)),
+        ("trash_create", (False, True, False)),
+    ],
+)
+def test_behaviour_hints(name, hints):
+    assert _hints(_tools()[name]) == hints
+
+
+def test_hinted_and_guided_names_exist_in_the_spec():
+    # A renamed operation would silently lose its hint or its guide.
+    ids = {
+        op["operationId"]
+        for ops in SPEC["paths"].values()
+        for op in ops.values()
+        if isinstance(op, dict) and "operationId" in op
+    }
+    listed = (
+        server.READ_ONLY_POSTS | server.DESTRUCTIVE_POSTS | server.OPEN_WORLD
+        | set(server.TOOL_GUIDES)
+    )
+    assert listed <= ids
+
+
+def test_large_result_tools_say_how_to_narrow():
+    tools = _tools()
+    listing = tools["documents_list"].description
+    assert listing.startswith("GET /api/documents/\n\n")
+    for hint in ("fields", "page_size", "content", "query", "tags__id__all", "count"):
+        assert hint in listing
+    assert "ENTIRE trash" in tools["trash_create"].description
+    assert "task_id" in tools["tasks_list"].description
+
+
+def test_unguided_tools_get_a_note_from_their_method():
+    tools = _tools()
+    assert "page_size" in tools["saved_views_list"].description
+    # The spec's text for these is a mixin docstring; a sentence replaces it.
+    assert "List saved views." in tools["saved_views_list"].description
+    assert "Delete one of the share links." in tools["share_links_destroy"].description
+    assert not any("Django-Guardian" in t.description for t in tools.values())
+    assert not any("serializer" in t.description for t in tools.values())
+    assert "cannot be undone" in tools["tags_destroy"].description
+    assert "page_size" not in tools["tags_retrieve"].description
+
+
+def test_server_sends_instructions():
+    mcp = build(lambda r: httpx.Response(404))
+    assert "fields" in mcp.instructions and "confirmation" in mcp.instructions
+
+
 def test_array_response_passes_through():
     notes = [{"id": 1, "note": "hello"}]
 

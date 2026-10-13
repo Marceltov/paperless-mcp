@@ -56,6 +56,26 @@ Four operations can't work as generated and are replaced by tools of the same na
 
 Files are returned inside the tool result, so they are capped at 10 MB. To read a document, the model doesn't need the file: `documents_retrieve` returns the extracted text in its `content` field.
 
+## Hints and descriptions
+
+Every tool tells the client how it behaves, through the standard MCP tool annotations. Clients use them to decide which calls need your confirmation.
+
+| Kind of tool | Read-only | Destructive | Idempotent |
+| ------------ | --------- | ----------- | ---------- |
+| `GET` (`…_list`, `…_retrieve`), and the two `POST`s that only read (`documents_selection_data_create`, `storage_paths_test`) | yes | no | yes |
+| `PATCH` (`…_partial_update`) | no | no | yes |
+| `POST` that creates (`tags_create`, the upload, …) | no | no | no |
+| `DELETE` (`…_destroy`) | no | yes | yes |
+| `POST` that deletes or rewrites files: `bulk_edit`, `bulk_edit_objects`, `documents_delete`, `trash_create`, `documents_merge`, `documents_edit_pdf`, `documents_rotate`, `documents_remove_password` | no | yes | no |
+
+The tools that send mail or contact a mailbox (`documents_email_document`, `email_documents`, `mail_account_test`, `mail_account_process`) are marked as reaching beyond Paperless (`openWorldHint`).
+
+A `PATCH` overwrites the fields you send, but it is marked non-destructive: it changes one object and the old values can be set again. The hints are advice for the client, not access control; what a user may do is decided by their Paperless permissions.
+
+Descriptions start with the method and path. The tools a model uses most, and the ones where a wrong call is costly, have a description written for this server: `documents_list`, `documents_retrieve`, `documents_partial_update`, `documents_destroy`, `documents_delete`, `bulk_edit`, `bulk_edit_objects`, `trash_list`, `trash_create`, `search_retrieve`, `search_autocomplete_list`, `statistics_retrieve`, `tasks_list`, `documents_selection_data_create` and the list tools for tags, correspondents, document types, storage paths and custom fields. They say what comes back, which filters narrow the result, and how to keep it small. The other tools keep the text from the Paperless spec, with a note on paging for lists and on permanence for deletes.
+
+The server also sends short instructions when a client connects: look IDs up first, filter on the server and leave out `content` with `fields`, read full text one document at a time, and confirm before a destructive call.
+
 ## Tips for prompts
 
 - `documents_list` returns the full text of every document on the page. Ask for `fields` (for example `id`, `title`, `created`, `correspondent`) and a small `page_size` when you only need an overview.

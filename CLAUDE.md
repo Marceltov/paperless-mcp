@@ -59,7 +59,8 @@ Workflows: `publish.yml` pushes `:<branch>` on every branch push and the version
 
 Endpoints that don't fit JSON-in/JSON-out, and how each is handled:
 
-- **Non-object responses** (bare arrays, scalars, the bodiless trash endpoints): a *metadata* problem. `describe_tool` (the `mcp_component_fn`) clears every generated output schema, and prefixes each description with `METHOD /path`.
+- **Non-object responses** (bare arrays, scalars, the bodiless trash endpoints): a *metadata* problem. `describe_tool` (the `mcp_component_fn`) clears every generated output schema.
+- **Descriptions and hints**: `describe_tool` also sets each description (`tool_description`: `METHOD /path`, then the hand-written `TOOL_GUIDES` entry, else the spec text with boilerplate replaced and a paging/delete note) and the MCP annotations (`tool_annotations`: from the HTTP method, with `READ_ONLY_POSTS`, `DESTRUCTIVE_POSTS`, `OPEN_WORLD` as exceptions by operation ID). A new POST that deletes must be added to `DESTRUCTIVE_POSTS`. `INSTRUCTIONS` is the server-level guidance.
 - **File responses** (`download`, `preview`, `thumb`; the spec wrongly types them `application/json`) and the **multipart upload** (`post_document`): *behavior* problems. Replaced by `register_file_tools` (returns FastMCP `File`/`Image`, capped at `MAX_FILE_BYTES`) and `register_upload_tool`.
 
 `validate_output=False` because live responses don't always match the spec.
