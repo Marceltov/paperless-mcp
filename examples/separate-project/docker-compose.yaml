@@ -1,9 +1,9 @@
-# paperless-mcp next to an existing Paperless-ngx, as its own compose project.
+# The Paperless-ngx MCP server next to an existing Paperless-ngx, as its own compose project.
 # Copy .env.example to .env, adjust it, then: docker compose up -d
 services:
-  paperless-mcp:
-    image: ghcr.io/marceltov/paperless-mcp:latest
-    container_name: paperless-mcp
+  paperless-ngx-mcp:
+    image: ghcr.io/marceltov/paperless-ngx-mcp:latest
+    container_name: paperless-ngx-mcp
     restart: unless-stopped
     env_file: .env
     volumes:

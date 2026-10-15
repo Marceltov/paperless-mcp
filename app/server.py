@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# paperless-mcp — Standalone MCP server exposing the Paperless-ngx REST API over HTTP.
+# Paperless-ngx MCP server — Standalone MCP server exposing the Paperless-ngx REST API over HTTP.
 # Copyright (C) 2026 Marcel Bruckner
 #
 # This program is free software: you can redistribute it and/or modify it under
@@ -1193,7 +1193,7 @@ def build_oauth_provider(mode: str) -> PaperlessOAuthProvider:
     store = FernetEncryptionWrapper(
         key_value=files,
         source_material=os.environ[OAUTH_SECRET_ENV],
-        salt="paperless-mcp-oauth",
+        salt="paperless-ngx-mcp-oauth",
         # A changed secret turns stored state into misses: clients just log in again.
         raise_on_decryption_error=False,
     )

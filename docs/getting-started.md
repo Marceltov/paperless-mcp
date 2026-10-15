@@ -2,7 +2,7 @@
 
 Three steps: add one service to your compose file, make it reachable, and point your client at it. You need a running Paperless-ngx 2.15 or newer (the first version that serves its OpenAPI spec).
 
-## 1. Add paperless-mcp to your compose file
+## 1. Add the Paperless-ngx MCP server to your compose file
 
 Add one service to the `docker-compose.yaml` that runs Paperless. It pulls the prebuilt image, so there's nothing to clone or build:
 
@@ -11,9 +11,9 @@ services:
   webserver:
     # ... your existing Paperless-ngx service ...
 
-  paperless-mcp:
-    image: ghcr.io/marceltov/paperless-mcp:latest
-    container_name: paperless-mcp
+  paperless-ngx-mcp:
+    image: ghcr.io/marceltov/paperless-ngx-mcp:latest
+    container_name: paperless-ngx-mcp
     restart: unless-stopped
     environment:
       # Paperless's service name on this compose network, port 8000.
@@ -27,12 +27,12 @@ Both services share the compose network, so `webserver` (the service name in Pap
 Start it and check that it's up:
 
 ```bash
-docker compose up -d paperless-mcp
+docker compose up -d paperless-ngx-mcp
 curl http://localhost:8081/health   # -> ok
-docker compose logs paperless-mcp   # -> OpenAPI spec: http://webserver:8000/api/schema/
+docker compose logs paperless-ngx-mcp   # -> OpenAPI spec: http://webserver:8000/api/schema/
 ```
 
-On startup paperless-mcp downloads the OpenAPI spec from your Paperless and generates the tools from it. If Paperless is still booting it waits up to a minute; see [the spec download](configuration.md#the-openapi-spec).
+On startup the Paperless-ngx MCP server downloads the OpenAPI spec from your Paperless and generates the tools from it. If Paperless is still booting it waits up to a minute; see [the spec download](configuration.md#the-openapi-spec).
 
 ## 2. Make it reachable
 
@@ -50,23 +50,23 @@ The MCP endpoint is served on port 8081 at `/mcp`. How your clients reach it dep
 
 === "Reverse proxy (HTTPS)"
 
-    For access from anywhere, put paperless-mcp behind a reverse proxy that terminates TLS. With [Caddy](https://caddyserver.com), which fetches certificates automatically:
+    For access from anywhere, put the Paperless-ngx MCP server behind a reverse proxy that terminates TLS. With [Caddy](https://caddyserver.com), which fetches certificates automatically:
 
     ```
-    paperless-mcp.example.com {
-        reverse_proxy paperless-mcp:8081
+    paperless-ngx-mcp.example.com {
+        reverse_proxy paperless-ngx-mcp:8081
     }
     ```
 
-    Clients then connect to `https://paperless-mcp.example.com/mcp`. HTTPS is also required for [OAuth](claude-code.md#oauth). More in [Reverse proxy and TLS](reverse-proxy.md).
+    Clients then connect to `https://paperless-ngx-mcp.example.com/mcp`. HTTPS is also required for [OAuth](claude-code.md#oauth). More in [Reverse proxy and TLS](reverse-proxy.md).
 
 ## 3. Connect your MCP client
 
 Copy your API token from Paperless (*My Profile → API Auth Token*; click the refresh icon if the field is empty), then register the server's address with it on the machine running your client:
 
 ```bash
-claude mcp add paperless --scope user --transport http \
-  https://paperless-mcp.example.com/mcp \
+claude mcp add paperless-ngx --scope user --transport http \
+  https://paperless-ngx-mcp.example.com/mcp \
   --header "Authorization: YOUR_PAPERLESS_API_TOKEN"
 ```
 

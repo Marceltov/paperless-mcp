@@ -8,7 +8,7 @@
 # MCP:       http://localhost:9191/mcp
 #
 # Everything here is a dev-only fixture -- never reuse these credentials.
-name: paperless-mcp-dev
+name: paperless-ngx-mcp-dev
 
 services:
   broker:
@@ -62,9 +62,9 @@ services:
       - ./dev/seed:/seed:ro
     command: ["python", "/seed/seed.py"]
 
-  paperless-mcp:
+  paperless-ngx-mcp:
     # Build the image from the local source for development. Swap for
-    # `image: ghcr.io/marceltov/paperless-mcp:latest` to use the published one.
+    # `image: ghcr.io/marceltov/paperless-ngx-mcp:latest` to use the published one.
     build: .
     restart: unless-stopped
     # Starting after the seed means a healthy MCP is a seeded Paperless, which

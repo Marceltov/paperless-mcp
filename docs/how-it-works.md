@@ -5,13 +5,13 @@ hide:
 
 # How it works
 
-paperless-mcp downloads the OpenAPI spec from your Paperless-ngx, turns its operations into MCP tools, and forwards each call to Paperless with an API token: either the one the client sent, or, with OAuth, the one it fetched for that user at login.
+The Paperless-ngx MCP server downloads the OpenAPI spec from your Paperless-ngx, turns its operations into MCP tools, and forwards each call to Paperless with an API token: either the one the client sent, or, with OAuth, the one it fetched for that user at login.
 
 ```mermaid
 --8<-- "docs/diagrams/architecture.mmd"
 ```
 
-paperless-mcp runs as a container sidecar and talks to Paperless over the internal Docker network. Clients reach it through a TLS-terminating reverse proxy or directly over a trusted LAN.
+The Paperless-ngx MCP server runs as a container sidecar and talks to Paperless over the internal Docker network. Clients reach it through a TLS-terminating reverse proxy or directly over a trusted LAN.
 
 ## Tools from the OpenAPI spec
 
@@ -22,7 +22,7 @@ sequenceDiagram
   autonumber
   actor O as Container runtime
   box rgba(76, 165, 62, 0.1)
-    participant M as paperless-mcp
+    participant M as Paperless-ngx MCP server
   end
   participant P as Paperless-ngx
   O->>M: Start
@@ -48,14 +48,14 @@ Four operations need real code and are replaced by hand-written tools of the sam
 
 ## API token
 
-The client's token passes through unchanged. paperless-mcp stores nothing.
+The client's token passes through unchanged. The Paperless-ngx MCP server stores nothing.
 
 ```mermaid
 sequenceDiagram
   autonumber
   participant C as MCP client
   box rgba(76, 165, 62, 0.1)
-    participant M as paperless-mcp
+    participant M as Paperless-ngx MCP server
   end
   participant P as Paperless-ngx
   C->>M: Tool call<br>Authorization: API token
@@ -74,7 +74,7 @@ sequenceDiagram
     sequenceDiagram
       autonumber
       participant C as MCP client
-      box rgba(76, 165, 62, 0.1) paperless-mcp
+      box rgba(76, 165, 62, 0.1) Paperless-ngx MCP server
         participant MW as TokenCapture<br>Middleware
         participant F as FastMCP<br>tools
         participant H as httpx +<br>PaperlessTokenAuth
@@ -107,7 +107,7 @@ sequenceDiagram
   autonumber
   participant C as MCP client
   box rgba(76, 165, 62, 0.1)
-    participant M as paperless-mcp
+    participant M as Paperless-ngx MCP server
   end
   participant P as Paperless-ngx
   Note over C,P: Once per client
@@ -132,7 +132,7 @@ sequenceDiagram
       autonumber
       actor U as User
       participant C as MCP client
-      box rgba(76, 165, 62, 0.1) paperless-mcp
+      box rgba(76, 165, 62, 0.1) Paperless-ngx MCP server
         participant A as OAuth<br>provider
         participant S as mcp-oauth<br>store
       end
@@ -169,7 +169,7 @@ sequenceDiagram
     sequenceDiagram
       autonumber
       participant C as MCP client
-      box rgba(76, 165, 62, 0.1) paperless-mcp
+      box rgba(76, 165, 62, 0.1) Paperless-ngx MCP server
         participant F as FastMCP<br>auth + tools
         participant A as verify_token
         participant H as httpx +<br>PaperlessTokenAuth
@@ -203,7 +203,7 @@ sequenceDiagram
     sequenceDiagram
       autonumber
       participant C as MCP client
-      box rgba(76, 165, 62, 0.1) paperless-mcp
+      box rgba(76, 165, 62, 0.1) Paperless-ngx MCP server
         participant A as OAuth<br>provider
         participant S as mcp-oauth<br>store
       end

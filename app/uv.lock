@@ -752,7 +752,7 @@ wheels = [
 ]
 
 [[package]]
-name = "paperless-mcp"
+name = "paperless-ngx-mcp"
 version = "0.1.1"
 source = { virtual = "." }
 dependencies = [

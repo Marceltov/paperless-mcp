@@ -17,6 +17,6 @@ jobs:
     steps:
       - uses: actions/delete-package-versions@v5
         with:
-          package-name: paperless-mcp
+          package-name: paperless-ngx-mcp
           package-type: container
           delete-only-untagged-versions: "true"
