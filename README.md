@@ -1,11 +1,11 @@
-<h1 align="center"><a href="https://github.com/Marceltov/paperless-mcp">Paperless-ngx MCP server</a></h1>
+<h1 align="center"><a href="https://github.com/Marceltov/paperless-ngx-mcp">Paperless-ngx MCP server</a></h1>
 
 <p align="center">
-  <a href="https://paperless-mcp.marceltov.de/">
+  <a href="https://paperless-ngx-mcp.marceltov.de/">
     <img alt="Documentation" src="https://img.shields.io/badge/docs-paperless--mcp.marceltov.de-2f7a27">
   </a>
-  <a href="https://github.com/Marceltov/paperless-mcp/pkgs/container/paperless-mcp">
-    <img alt="GHCR image" src="https://img.shields.io/github/v/release/Marceltov/paperless-mcp?logo=docker&logoColor=white&label=ghcr.io%2Fmarceltov%2Fpaperless-mcp&color=2496ED">
+  <a href="https://github.com/Marceltov/paperless-ngx-mcp/pkgs/container/paperless-ngx-mcp">
+    <img alt="GHCR image" src="https://img.shields.io/github/v/release/Marceltov/paperless-ngx-mcp?logo=docker&logoColor=white&label=ghcr.io%2Fmarceltov%2Fpaperless-ngx-mcp&color=2496ED">
   </a>
   <a href="LICENSE">
     <img alt="License: AGPL v3" src="https://img.shields.io/badge/License-AGPL_v3-blue.svg">
@@ -27,21 +27,21 @@ and shares its design.
 
 ## Documentation
 
-**Full documentation: [paperless-mcp.marceltov.de](https://paperless-mcp.marceltov.de/)**
+**Full documentation: [paperless-ngx-mcp.marceltov.de](https://paperless-ngx-mcp.marceltov.de/)**
 
-- [Quick start](https://paperless-mcp.marceltov.de/getting-started/): add the container, connect a client
-- [Connect a client](https://paperless-mcp.marceltov.de/connecting/): OAuth or API token, Claude Code, Claude.ai
-- [Tools](https://paperless-mcp.marceltov.de/tools/): the default toolsets and how to change them
-- [Configuration](https://paperless-mcp.marceltov.de/configuration/), [reverse proxy and TLS](https://paperless-mcp.marceltov.de/reverse-proxy/) and [security](https://paperless-mcp.marceltov.de/security/)
-- [How it works](https://paperless-mcp.marceltov.de/how-it-works/): architecture and request flows
+- [Quick start](https://paperless-ngx-mcp.marceltov.de/getting-started/): add the container, connect a client
+- [Connect a client](https://paperless-ngx-mcp.marceltov.de/connecting/): OAuth or API token, Claude Code, Claude.ai
+- [Tools](https://paperless-ngx-mcp.marceltov.de/tools/): the default toolsets and how to change them
+- [Configuration](https://paperless-ngx-mcp.marceltov.de/configuration/), [reverse proxy and TLS](https://paperless-ngx-mcp.marceltov.de/reverse-proxy/) and [security](https://paperless-ngx-mcp.marceltov.de/security/)
+- [How it works](https://paperless-ngx-mcp.marceltov.de/how-it-works/): architecture and request flows
 
 ## Quick start
 
 Add the service next to your Paperless in `docker-compose.yaml`:
 
 ```yaml
-  paperless-mcp:
-    image: ghcr.io/marceltov/paperless-mcp:latest
+  paperless-ngx-mcp:
+    image: ghcr.io/marceltov/paperless-ngx-mcp:latest
     restart: unless-stopped
     environment:
       PAPERLESS_URL: http://webserver:8000
@@ -52,15 +52,15 @@ Add the service next to your Paperless in `docker-compose.yaml`:
 Then copy your API token from Paperless (*My Profile → API Auth Token*) and connect your client:
 
 ```bash
-docker compose up -d paperless-mcp
-claude mcp add paperless --scope user --transport http \
-  https://paperless-mcp.example.com/mcp \
+docker compose up -d paperless-ngx-mcp
+claude mcp add paperless-ngx --scope user --transport http \
+  https://paperless-ngx-mcp.example.com/mcp \
   --header "Authorization: YOUR_PAPERLESS_API_TOKEN"
 ```
 
 To log in with your Paperless username and password instead, set `MCP_BASE_URL` and
 `MCP_OAUTH_SECRET` and leave the header out. See the
-[quick start](https://paperless-mcp.marceltov.de/getting-started/).
+[quick start](https://paperless-ngx-mcp.marceltov.de/getting-started/).
 
 ## Contributing
 

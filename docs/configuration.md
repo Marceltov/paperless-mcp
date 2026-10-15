@@ -14,12 +14,12 @@ All configuration is through environment variables, so the server runs cleanly a
 | `MCP_PATH` | `/mcp` | HTTP path the MCP endpoint is served at. |
 | `MCP_ALLOWED_HOSTS` | *(unset = any)* | Comma-separated `Host` allowlist (DNS-rebinding protection). Unset accepts any Host; set it to restrict. See [Security](security.md#host-allowlist). |
 | `MCP_AUTH_MODE` | *(unset = automatic)* | Usually leave unset: setting `MCP_BASE_URL` and `MCP_OAUTH_SECRET` turns on OAuth next to API tokens (`both`), otherwise the server accepts API tokens only (`token`). Set `oauth` to reject raw API tokens. See [Choosing a mode](#choosing-a-mode). |
-| `MCP_BASE_URL` | *(unset)* | Public URL clients reach this server at, e.g. `https://paperless-mcp.example.com`. The OAuth issuer: must be HTTPS (plain `http` only for `localhost`). Required for `oauth` and `both`. |
+| `MCP_BASE_URL` | *(unset)* | Public URL clients reach this server at, e.g. `https://paperless-ngx-mcp.example.com`. The OAuth issuer: must be HTTPS (plain `http` only for `localhost`). Required for `oauth` and `both`. |
 | `MCP_OAUTH_SECRET` | *(unset)* | Encrypts the OAuth store at `/data/oauth` (mount a volume at `/data`). Required for `oauth` and `both`; changing it logs every OAuth client out. |
 
 ## The OpenAPI spec
 
-Paperless-ngx serves its own OpenAPI spec at `/api/schema/` (the page at `/api/schema/view/` is the Swagger UI for it). At startup paperless-mcp downloads it from `PAPERLESS_URL` and generates the tools from it, so they match the Paperless version you run. The container log names the source:
+Paperless-ngx serves its own OpenAPI spec at `/api/schema/` (the page at `/api/schema/view/` is the Swagger UI for it). At startup the Paperless-ngx MCP server downloads it from `PAPERLESS_URL` and generates the tools from it, so they match the Paperless version you run. The container log names the source:
 
 ```
 OpenAPI spec: http://webserver:8000/api/schema/
@@ -27,7 +27,7 @@ OpenAPI spec: http://webserver:8000/api/schema/
 
 - **Paperless still booting.** Connection errors and `5xx` answers are retried for `PAPERLESS_SPEC_WAIT` seconds, which covers both containers starting together.
 - **Download fails.** The server falls back to the snapshot bundled in the image and says so in the log. The tools then describe the Paperless version the image was built against, which may be newer or older than yours. Fix the URL and restart.
-- **After a Paperless update.** Restart paperless-mcp to pick up the new spec; it is read once, at startup.
+- **After a Paperless update.** Restart the Paperless-ngx MCP server to pick up the new spec; it is read once, at startup.
 - **Pinning.** Set `PAPERLESS_API_SPEC` to a file (mounted into the container) or a URL to use exactly that spec. There is no fallback then: a pinned spec that can't be loaded starts the server in the [`startup_error` state](security.md#startup-errors).
 
 The API version is read from the spec too. Paperless writes its version as `2.20.3 (9)`; the number in brackets is sent as `Accept: application/json; version=9`, so responses come in the shapes the spec describes. Without it Paperless answers in its oldest shapes.
@@ -41,7 +41,7 @@ With `MCP_BASE_URL` and `MCP_OAUTH_SECRET` set, clients that support the MCP aut
 - Accounts without a password (single sign-on) paste their API token on the login page instead.
 - Raw API tokens in the `Authorization` header keep working in the default `both` mode.
 - Mount a volume at `/data` (see the [compose examples](compose-examples.md)) so logins survive the container being recreated, for example on an image update.
-- Paperless allows five login attempts a minute, counted per client address. Every login through paperless-mcp arrives from the sidecar's address, so that budget is shared by all its users. The login page shows Paperless's "try again in N seconds" when it is used up; raise it with Paperless's `PAPERLESS_TOKEN_THROTTLE_RATE` if you need to.
+- Paperless allows five login attempts a minute, counted per client address. Every login through the Paperless-ngx MCP server arrives from the sidecar's address, so that budget is shared by all its users. The login page shows Paperless's "try again in N seconds" when it is used up; raise it with Paperless's `PAPERLESS_TOKEN_THROTTLE_RATE` if you need to.
 
 An invalid `MCP_AUTH_MODE`, or an explicit `oauth`/`both` without its variables, starts the server in the [`startup_error` state](security.md#startup-errors).
 

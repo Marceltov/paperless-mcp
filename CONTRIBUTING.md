@@ -13,7 +13,7 @@ curl http://localhost:9191/health   # -> ok
 
 | | URL | Credentials |
 | - | --- | ----------- |
-| Paperless-ngx | <http://localhost:9190> | `admin` / `paperless-mcp` |
+| Paperless-ngx | <http://localhost:9190> | `admin` / `paperless-ngx-mcp` |
 | MCP server | `http://localhost:9191/mcp` | the admin's API token, or the OAuth login |
 
 These are **committed dev fixtures** for the disposable instance. Never reuse them anywhere real.
@@ -21,7 +21,7 @@ These are **committed dev fixtures** for the disposable instance. Never reuse th
 Connect Claude Code to it with OAuth:
 
 ```bash
-claude mcp add paperless-dev --transport http http://localhost:9191/mcp
+claude mcp add paperless-ngx-dev --transport http http://localhost:9191/mcp
 ```
 
 ### The seed

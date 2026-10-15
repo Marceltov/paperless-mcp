@@ -1,48 +1,48 @@
 # Claude Code
 
-Register paperless-mcp with `claude mcp add`. Pick the [auth method](connecting.md#choosing-an-auth-method) per connection.
+Register the Paperless-ngx MCP server with `claude mcp add`. Pick the [auth method](connecting.md#choosing-an-auth-method) per connection.
 
 ## OAuth
 
 Register the URL with no header. The client opens the login page on first use:
 
 ```bash
-claude mcp add paperless --scope user --transport http \
-  https://paperless-mcp.example.com/mcp
+claude mcp add paperless-ngx --scope user --transport http \
+  https://paperless-ngx-mcp.example.com/mcp
 ```
 
 In Claude Code, run `/mcp` and pick the server to authenticate. Enter your Paperless username and password (and the two-factor code, if your account has one).
 
 ## API token
 
-The API token is the credential: pass it in the `Authorization` header. Point the URL at wherever paperless-mcp is reachable.
+The API token is the credential: pass it in the `Authorization` header. Point the URL at wherever the Paperless-ngx MCP server is reachable.
 
 === "Behind a reverse proxy (TLS)"
 
     ```bash
-    claude mcp add paperless --scope user --transport http \
-      https://paperless-mcp.example.com/mcp \
+    claude mcp add paperless-ngx --scope user --transport http \
+      https://paperless-ngx-mcp.example.com/mcp \
       --header "Authorization: YOUR_PAPERLESS_API_TOKEN"
     ```
 
 === "On a trusted local network"
 
     ```bash
-    claude mcp add paperless --scope user --transport http \
+    claude mcp add paperless-ngx --scope user --transport http \
       http://192.168.1.50:8081/mcp \
       --header "Authorization: YOUR_PAPERLESS_API_TOKEN"
     ```
 
 === "`.mcp.json`"
 
-    Commit a project-level config instead, filling in your host and token (a copy is in the repo as [`.mcp.json`](https://github.com/Marceltov/paperless-mcp/blob/main/.mcp.json)):
+    Commit a project-level config instead, filling in your host and token (a copy is in the repo as [`.mcp.json`](https://github.com/Marceltov/paperless-ngx-mcp/blob/main/.mcp.json)):
 
     ```json
     {
       "mcpServers": {
-        "paperless": {
+        "paperless-ngx": {
           "type": "http",
-          "url": "https://paperless-mcp.example.com/mcp",
+          "url": "https://paperless-ngx-mcp.example.com/mcp",
           "headers": {
             "Authorization": "YOUR_PAPERLESS_API_TOKEN"
           }

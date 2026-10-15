@@ -91,7 +91,7 @@ All environment variables, no CLI args: `PAPERLESS_URL`, `PAPERLESS_API_SPEC`, `
 
 ## Dev fixture
 
-The dev Paperless (`docker-compose.yaml`) is created empty and filled by the one-shot `seed` service running `dev/seed/seed.py` through the REST API: 4 correspondents, 4 document types, 5 tags, 1 custom field, and the 6 text files in `dev/seed/documents/`. The MCP container depends on the seed completing. Credentials `admin` / `paperless-mcp` are committed dev fixtures; never reuse them.
+The dev Paperless (`docker-compose.yaml`) is created empty and filled by the one-shot `seed` service running `dev/seed/seed.py` through the REST API: 4 correspondents, 4 document types, 5 tags, 1 custom field, and the 6 text files in `dev/seed/documents/`. The MCP container depends on the seed completing. Credentials `admin` / `paperless-ngx-mcp` are committed dev fixtures; never reuse them.
 
 ## Diagrams
 

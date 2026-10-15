@@ -100,22 +100,22 @@ jobs:
 
           All you need is a running Paperless-ngx and Docker — no checkout, no build.
 
-          **1. Add paperless-mcp to your Paperless-ngx `docker-compose.yaml`** — one service, pulling the prebuilt image:
+          **1. Add the Paperless-ngx MCP server to your Paperless-ngx `docker-compose.yaml`** — one service, pulling the prebuilt image:
 
           ```yaml
           services:
             webserver:
               # ... your existing Paperless-ngx service ...
 
-            paperless-mcp:
-              image: ghcr.io/marceltov/paperless-mcp:__VERSION__
-              container_name: paperless-mcp
+            paperless-ngx-mcp:
+              image: ghcr.io/marceltov/paperless-ngx-mcp:__VERSION__
+              container_name: paperless-ngx-mcp
               restart: unless-stopped
               environment:
                 # Service name and port of Paperless-ngx on the same compose network.
                 PAPERLESS_URL: http://webserver:8000
                 # Optional — enables OAuth login for remote/app clients:
-                # MCP_BASE_URL: https://paperless-mcp.example
+                # MCP_BASE_URL: https://paperless-ngx-mcp.example
                 # MCP_OAUTH_SECRET: <long random string>
               # volumes:
               #   - mcp-oauth:/data   # keeps OAuth logins across restarts
@@ -126,25 +126,25 @@ jobs:
           Then start it:
 
           ```bash
-          docker compose up -d paperless-mcp
+          docker compose up -d paperless-ngx-mcp
           ```
 
           On startup it downloads the OpenAPI spec from your Paperless-ngx (`/api/schema/`) and turns it into tools, so they match the version you run.
 
-          **2. Connect your MCP client**, pointing at wherever paperless-mcp is reachable:
+          **2. Connect your MCP client**, pointing at wherever the Paperless-ngx MCP server is reachable:
 
           ```bash
           # With an API token (Paperless-ngx: My Profile → API Auth Token)
-          claude mcp add paperless --scope user --transport http \
-            https://paperless-mcp.example/mcp \
+          claude mcp add paperless-ngx --scope user --transport http \
+            https://paperless-ngx-mcp.example/mcp \
             --header "Authorization: YOUR_PAPERLESS_API_TOKEN"
 
           # With OAuth enabled: URL only, log in once in the browser
-          claude mcp add paperless --scope user --transport http \
-            https://paperless-mcp.example/mcp
+          claude mcp add paperless-ngx --scope user --transport http \
+            https://paperless-ngx-mcp.example/mcp
           ```
 
-          Full guide: [documentation](https://paperless-mcp.marceltov.de/getting-started/)
+          Full guide: [documentation](https://paperless-ngx-mcp.marceltov.de/getting-started/)
           EOF
           # The git tag keeps its `v` (v0.1.0); the image tag drops it (0.1.0).
           sed -i "s|__VERSION__|${TAG#v}|g; s|__TAG__|$TAG|g" notes.md

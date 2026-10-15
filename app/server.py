@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-# paperless-mcp — Standalone MCP server exposing the Paperless-ngx REST API over HTTP.
+# Paperless-ngx MCP server — Standalone MCP server exposing the Paperless-ngx REST API over HTTP.
 # Copyright (C) 2026 Marcel Bruckner
 #
 # This program is free software: you can redistribute it and/or modify it under

@@ -4,7 +4,7 @@ flowchart LR
   lan["Client on a trusted LAN<br>API token"]
   proxy["Reverse proxy<br>TLS"]
   subgraph host["Docker host"]
-    mcp["paperless-mcp<br>:8081 /mcp"]
+    mcp["Paperless-ngx MCP server<br>:8081 /mcp"]
     oauth[("mcp-oauth<br>encrypted")]
     paperless["Paperless-ngx<br>:8000 /api"]
     data[("documents")]

@@ -1,17 +1,17 @@
-# Add paperless-mcp and its volume to the compose file that runs Paperless-ngx.
-# Copy paperless-mcp.env.example to paperless-mcp.env next to it, then:
-#   docker compose up -d paperless-mcp
+# Add the Paperless-ngx MCP server and its volume to the compose file that runs Paperless-ngx.
+# Copy paperless-ngx-mcp.env.example to paperless-ngx-mcp.env next to it, then:
+#   docker compose up -d paperless-ngx-mcp
 services:
   webserver:
     # ... your existing Paperless-ngx service ...
 
-  paperless-mcp:
-    image: ghcr.io/marceltov/paperless-mcp:latest
-    container_name: paperless-mcp
+  paperless-ngx-mcp:
+    image: ghcr.io/marceltov/paperless-ngx-mcp:latest
+    container_name: paperless-ngx-mcp
     restart: unless-stopped
     depends_on:
       - webserver
-    env_file: paperless-mcp.env
+    env_file: paperless-ngx-mcp.env
     volumes:
       # OAuth logins survive container updates (unused with tokens only).
       - mcp-oauth:/data

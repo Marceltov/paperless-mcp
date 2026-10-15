@@ -9,10 +9,10 @@
 # Tools called through this stack read and CHANGE real documents. The test
 # suite never targets it (see app/tests/test_live_target.py); use the seeded
 # stack in docker-compose.yaml for anything that writes.
-name: paperless-mcp-live
+name: paperless-ngx-mcp-live
 
 services:
-  paperless-mcp:
+  paperless-ngx-mcp:
     build: .
     restart: unless-stopped
     environment:

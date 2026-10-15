@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "paperless": {
+    "paperless-ngx": {
       "type": "http",
       "url": "https://your-host/mcp",
       "headers": {
