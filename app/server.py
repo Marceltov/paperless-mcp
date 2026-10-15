@@ -1193,7 +1193,7 @@ def build_oauth_provider(mode: str) -> PaperlessOAuthProvider:
     store = FernetEncryptionWrapper(
         key_value=files,
         source_material=os.environ[OAUTH_SECRET_ENV],
-        salt="paperless-mcp-oauth",
+        salt="paperless-ngx-mcp-oauth",
         # A changed secret turns stored state into misses: clients just log in again.
         raise_on_decryption_error=False,
     )
