@@ -73,7 +73,7 @@ SERVER_ENV = "PAPERLESS_URL"               # Base URL of the Paperless-ngx insta
 SPEC_ENV = "PAPERLESS_API_SPEC"            # Spec override: a file path or a URL
 SPEC_WAIT_ENV = "PAPERLESS_SPEC_WAIT"      # Seconds to wait for Paperless at startup
 API_VERSION_ENV = "PAPERLESS_API_VERSION"  # Override the API version sent to Paperless
-TOOLSETS_ENV = "MCP_TOOLSETS"              # Comma-separated toolsets, or "all"
+TOOLSETS_ENV = "MCP_TOOLSETS"              # Comma-separated toolsets, "default", or "all"
 MCP_HOST_ENV = "MCP_HOST"                  # Interface the MCP server binds to
 MCP_PORT_ENV = "MCP_PORT"                  # Port the MCP server listens on
 MCP_PATH_ENV = "MCP_PATH"                  # HTTP path the MCP endpoint is served at
@@ -663,12 +663,20 @@ def toolset_of(path: str) -> str:
 
 
 def resolve_toolsets() -> set[str] | None:
-    """The enabled toolsets from MCP_TOOLSETS; None means all of them."""
+    """The enabled toolsets from MCP_TOOLSETS; None means all of them.
+
+    `default` stands for DEFAULT_TOOLSETS, so `default,mail_rules` adds to the
+    defaults instead of replacing them.
+    """
     raw = os.environ.get(TOOLSETS_ENV, "").strip().lower()
     if not raw:
         return set(DEFAULT_TOOLSETS)
     names = {n.strip() for n in raw.split(",") if n.strip()}
-    return None if "all" in names else names
+    if "all" in names:
+        return None
+    if "default" in names:
+        names = (names - {"default"}) | set(DEFAULT_TOOLSETS)
+    return names
 
 
 def normalize_operation(method: str, op: dict) -> dict:

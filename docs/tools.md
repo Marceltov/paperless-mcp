@@ -26,13 +26,16 @@ Off by default: `users`, `groups`, `profile`, `config`, `mail_accounts`, `mail_r
 MCP_TOOLSETS=documents,search,tags,correspondents,document_types
 
 # The defaults plus workflows
-MCP_TOOLSETS=documents,search,correspondents,document_types,tags,storage_paths,custom_fields,saved_views,share_links,tasks,trash,statistics,bulk_edit_objects,workflows,workflow_actions,workflow_triggers
+MCP_TOOLSETS=default,workflows,workflow_actions,workflow_triggers
+
+# The defaults plus mail accounts and mail rules, for setting up mail import
+MCP_TOOLSETS=default,mail_accounts,mail_rules,processed_mail
 
 # Everything (139 tools)
 MCP_TOOLSETS=all
 ```
 
-Setting `MCP_TOOLSETS` replaces the default list, it doesn't add to it. Every tool takes up room in the model's context, so more is not better: turn on what you use.
+Setting `MCP_TOOLSETS` replaces the default list unless it contains `default`, which stands for the toolsets above: `default,mail_rules` is the defaults plus `mail_rules`. Every tool takes up room in the model's context, so more is not better: turn on what you use.
 
 Toolsets decide which tools exist. What a tool may do is still decided by Paperless: a user without permission to delete documents gets Paperless's `403` from `documents_destroy`.
 

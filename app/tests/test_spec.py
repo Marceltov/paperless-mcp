@@ -133,6 +133,14 @@ def test_toolsets_can_be_narrowed_or_opened(monkeypatch):
     assert {"users_list", "workflows_list", "mail_rules_list"} <= everything
 
 
+def test_default_keyword_adds_to_the_defaults(monkeypatch):
+    defaults = _tool_names(monkeypatch)
+    extended = _tool_names(monkeypatch, "default,mail_accounts,mail_rules")
+    assert defaults < extended
+    assert {"mail_accounts_list", "mail_rules_create"} <= extended - defaults
+    assert not any(n.startswith(("users_", "workflows_")) for n in extended)
+
+
 def test_credential_operations_are_never_tools(monkeypatch):
     # Even with every toolset on: these mint or replace the user's API token,
     # or change how the account logs in.
