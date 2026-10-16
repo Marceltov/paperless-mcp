@@ -241,3 +241,24 @@ def test_error_server_reports_the_failure():
 def test_bundled_spec_is_a_paperless_spec():
     assert SPEC["info"]["title"] == "Paperless-ngx REST API"
     assert server.api_version(SPEC)
+
+
+def test_mail_account_process_takes_only_the_id(monkeypatch):
+    # The spec gives the process action the whole account, password included,
+    # as a required body; Paperless reads only the ID from the path.
+    monkeypatch.setenv(server.TOOLSETS_ENV, "mail_accounts")
+    tools = {t.name: t for t in asyncio.run(build(lambda r: httpx.Response(404)).list_tools())}
+    params = tools["mail_account_process"].parameters
+    assert set(params["properties"]) == {"id"}
+    assert params.get("required") == ["id"]
+
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["method"], seen["path"], seen["body"] = request.method, request.url.path, request.content
+        return httpx.Response(200, json={"result": "OK"})
+
+    result = _call(handler, "mail_account_process", {"id": 3})
+    assert seen["method"] == "POST" and seen["path"] == "/api/mail_accounts/3/process/"
+    assert seen["body"] in (b"", b"{}", b"null")
+    assert "OK" in result.content[0].text
