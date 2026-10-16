@@ -693,8 +693,12 @@ def normalize_operation(method: str, op: dict) -> dict:
       for DELETE") next to the path `id`. FastMCP renames colliding parameters
       to `id__path` / `id__query`, which is needed for DELETE but only obscures
       the document ID on GET and POST. Drop the query twin there.
+    * BODYLESS_OPERATIONS declare a body Paperless never reads; drop it, so the
+      tool takes only the ID instead of demanding the account's password.
     """
     op = dict(op)
+    if op.get("operationId") in BODYLESS_OPERATIONS:
+        op.pop("requestBody", None)
     content = (op.get("requestBody") or {}).get("content") or {}
     if "application/json" in content and len(content) > 1:
         op["requestBody"] = {
@@ -775,6 +779,11 @@ documents_delete and trash_create.
 """
 
 # POST operations that only read (the method alone would mark them as writes).
+# Operations whose request body the spec declares but Paperless ignores: the
+# mail account process action reads only the ID from the path, yet the spec
+# gives it the whole account (with the password) as a required body.
+BODYLESS_OPERATIONS = frozenset({"mail_account_process"})
+
 READ_ONLY_POSTS = frozenset({
     "documents_selection_data_create", "storage_paths_test",
 })

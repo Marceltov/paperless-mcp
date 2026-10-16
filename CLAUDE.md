@@ -55,7 +55,7 @@ Workflows: `publish.yml` pushes `:<branch>` on every branch push and the version
 - `REPLACED_PATHS` are dropped and replaced by hand-written tools of the same name.
 - Toolsets (`toolset_of`: first path segment after `/api/`) not in `MCP_TOOLSETS` / `DEFAULT_TOOLSETS` are dropped; `all` keeps everything, `default` expands to `DEFAULT_TOOLSETS`.
 - `PUT` is dropped wherever the path also has `PATCH`.
-- `normalize_operation()` repairs what the spec gets wrong for FastMCP: request bodies reduced to JSON (FastMCP takes the first content type listed, sometimes multipart), `fields` made non-exploded (Paperless wants `fields=a,b`), and the notes endpoints' stray query `id` removed except on DELETE (where the tool takes `id__path` and `id__query`).
+- `normalize_operation()` repairs what the spec gets wrong for FastMCP: request bodies reduced to JSON (FastMCP takes the first content type listed, sometimes multipart), `fields` made non-exploded (Paperless wants `fields=a,b`), and the notes endpoints' stray query `id` removed except on DELETE (where the tool takes `id__path` and `id__query`). `BODYLESS_OPERATIONS` (`mail_account_process`) lose the body the spec declares but Paperless never reads, so the tool takes only `id`.
 
 Endpoints that don't fit JSON-in/JSON-out, and how each is handled:
 
