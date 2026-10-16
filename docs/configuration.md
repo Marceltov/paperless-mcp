@@ -5,7 +5,7 @@ All configuration is through environment variables, so the server runs cleanly a
 | Variable | Default | Purpose |
 | -------- | ------- | ------- |
 | `PAPERLESS_URL` | `http://paperless:8000` | Base URL of the Paperless-ngx instance, as this container reaches it. |
-| `MCP_TOOLSETS` | *(unset = defaults)* | Comma-separated toolsets to expose, or `all`. See [Tools](tools.md#toolsets). |
+| `MCP_TOOLSETS` | *(unset = defaults)* | Comma-separated toolsets to expose, or `all`. `default` stands for the default toolsets, so `default,mail_rules` adds to them. See [Tools](tools.md#toolsets). |
 | `PAPERLESS_API_SPEC` | *(unset = download)* | Pin the OpenAPI spec to a file path or URL instead of downloading it from `PAPERLESS_URL`. See [The OpenAPI spec](#the-openapi-spec). |
 | `PAPERLESS_SPEC_WAIT` | `60` | Seconds to wait for Paperless to serve the spec at startup. |
 | `PAPERLESS_API_VERSION` | *(from the spec)* | API version sent to Paperless in the `Accept` header. |
